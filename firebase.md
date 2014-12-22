@@ -76,9 +76,7 @@ $scope.save_book = function(){
     book: $scope.book,
     price: $scope.price,
   };
-
   console.log(textbook);
-
 };
 ```
 

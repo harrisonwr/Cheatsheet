@@ -1,9 +1,14 @@
 Atom Cheatsheet
 ===============
 
-#### How to open atom?
+#### How to open atom? Empty
 ```
 atom
+```
+
+#### How to open atom for entire directory?
+```
+atom .
 ```
 
 #### How to open atom command line?
