@@ -47,7 +47,7 @@ $ sudo apt-get install ros-indigo-rqt-common-plugins
 
 # we want to install ros-ingigo-turtlesim.
 # If you have not install rqt yet, put ros-indigo-rqt and ros-indigo-rqt-common-plugins
-$ sudo apt-get install ros-indigo-rqt ros-indigo-rqt-common-plugins ros-<distro>-turtlesim
+$ sudo apt-get install ros-indigo-rqt ros-indigo-rqt-common-plugins ros-indigo-turtlesim
 
 ```
 #### Run Turtle Simulation
