@@ -36,6 +36,19 @@ $ source ~/.bashrc
 
 # Install rosinstall
 $ sudo apt-get install python-rosinstall
+
+# Recommend to install
+# install this if you want to go through the tutorial
+$ sudo apt-get install ros-indigo-ros-tutorials
+
+# install rqt
+$ sudo apt-get install ros-indigo-rqt
+$ sudo apt-get install ros-indigo-rqt-common-plugins
+
+# we want to install ros-ingigo-turtlesim.
+# If you have not install rqt yet, put ros-indigo-rqt and ros-indigo-rqt-common-plugins
+$ sudo apt-get install ros-indigo-rqt ros-indigo-rqt-common-plugins ros-<distro>-turtlesim
+
 ```
 #### Run Turtle Simulation
 ##### you should be able to see a blue screen with a turtle in the middle
@@ -114,7 +127,7 @@ $ cd ~/catkin_ws/src
 # create package with dependencies
 # catkin_create_pkg <package_name> [depend1] [depend2] [depend3]
 # sample:
-$ catkin_create_pkg beginner_tutorials std_msg rospy roscpp
+$ catkin_create_pkg beginner_tutorials std_msgs rospy roscpp
 ```
 #### Building a catkin workspace and sourcing the setup file
 ```python
@@ -199,6 +212,86 @@ $ ls src
 $ catkin_make
 ```
 
+#### ROS Services and Parameters
+##### Services
+```python
+# get all the services that we can call in the application that we are running
+$ rosservice list
+
+# get the type of a specific service
+# template: $ rosservice type [service]
+$ rosservice type clear
+
+# call service
+# template: $ rosservice call [service] [args]
+$ rosservice call /clear
+
+
+# demonstration of call the service and getting the type with turtlesim
+
+# check out the type of the service spawn
+# it will give you information about values that it needs to call the service
+$ rosservice type spawn | rossrv show
+
+# call the service spawn
+# (float32 x, float32 y, float32 theta, string name)
+$ rosservice call spawn 2 2 0.2 ""
+```
+
+##### Parameters
+```python
+
+# list out all the parameters that the node that are running
+$ rosparam list
+
+# set the parameter with the value that come after
+$ rosparam set [param_name]
+
+# get the value of the parameter
+$ rosparam get [param_name]
+
+# -------------------------------------------------------------------------
+# this is a demonstration of setting and getting the parameter of turtlesim
+
+# this set the red background color to 150
+$ rosparam set background_r 150
+
+# this will clear the screen so that the screen got update with new value
+$ rosservice call clear
+
+# get the green value of the background color
+$ rosparam get background_g
+
+# or you can just get all the values of parameters
+$ rosparam get /
+#
+#---------------------------------------------------------------------------
+
+
+# write information into a file
+$ rosparam dump [file_name] [namespace]
+
+# load information into a new namespace
+$ rosparam load [file_name] [namespace]
+
+# -----------------------------------------------------
+# sample code for using rosparam dump and rosparam load
+
+# write all the parameters to the file params.yaml
+$ rosparam dump params.yaml
+
+# load these yaml files into new namespaces, e.g. copy
+$ rosparam load params.yaml copy
+$ rosparam get copy/background_r
+#
+# ------------------------------------------------------
+```
+
+#### rqt_console and roslaunch
+```python
+
+```
+
 
 #### Sample Package
 ```python
@@ -235,6 +328,6 @@ $ rospy.spin()
 # to get the message
 $ rosmsg
 
-# add something new here 
+# add something new here
 
 ```
