@@ -41,12 +41,12 @@ $ sudo apt-get install python-rosinstall
 # install this if you want to go through the tutorial
 $ sudo apt-get install ros-indigo-ros-tutorials
 
-# install rqt
-$ sudo apt-get install ros-indigo-rqt
-$ sudo apt-get install ros-indigo-rqt-common-plugins
+# install rqt individually
+# $ sudo apt-get install ros-indigo-rqt
+# $ sudo apt-get install ros-indigo-rqt-common-plugins
 
-# we want to install ros-ingigo-turtlesim.
-# If you have not install rqt yet, put ros-indigo-rqt and ros-indigo-rqt-common-plugins
+# since we want to install ros-ingigo-turtlesim for going through the tutorial,
+# we can install all the rqt related plugins all at once
 $ sudo apt-get install ros-indigo-rqt ros-indigo-rqt-common-plugins ros-indigo-turtlesim
 
 ```
@@ -145,6 +145,7 @@ $ . ~/catkin_ws/devel/setup.bash
 ```python
 # Tutorials: http://wiki.ros.org/ROS/Tutorials/CreatingPackage
 
+# these command will show you the dependenciese inside the package
 # First-order dependencies
 $ rospack depends1 beginner_tutorials
 
@@ -288,10 +289,503 @@ $ rosparam get copy/background_r
 ```
 
 #### rqt_console and roslaunch
+##### Using rqt console
 ```python
+# Tutorial: http://wiki.ros.org/ROS/Tutorials/UsingRqtconsoleRoslaunch
+
+# check which message
+$ rosrun rqt_console rqt_console
+
+$ rosrun rqt_logger_level rqt_logger_level
+
+```
+##### Roslaunch
+```python
+# Tutorial: http://wiki.ros.org/ROS/Tutorials/UsingRqtconsoleRoslaunch
+
+# starts nodes as define in a launch file
+$ roslaunch [package] [filename.launch]
+
+#------------------
+
+# go to the package
+$ roscd beginner_tutorials
+
+# if "No such package/stack 'beginner_tutorials'",
+# you will need to source the environment first
+$ cd ~/catkin_ws
+$ source devel_setup.bash
+$ roscd beginner_tutorials
+
+# create a launch folder and go to the launch folder
+$ mkdir launch
+$ cd launch
+
+# use rqt_graph to see the relationship between each node
+$ rqt_graph
+```
+
+```xml
+ <!-- create a launch file named turtlemimic.launch -->
+
+<!-- launch tag let the computer to identify the file as launch file-->
+<launch>
+  <!--
+    start two groups with namespace of turtlesim1 and turtlesim2
+    that use turtlesim node so that we can use the turtle simulators
+    without having name conflicts
+  -->
+  <group ns="turtlesim1">
+    <node pkg="turtlesim" name="sim" type="turtlesim_node"/>
+  </group>
+
+  <group ns="turtlesim2">
+    <node pkg="turtlesim" name="sim" type="turtlesim_node"/>
+  </group>
+
+  <!--
+    user input -> turtlesim1 -> mimic -> turtlesim2
+
+    turtlesim1 listen to user input
+    mimic's input is given by turtlesim1
+    mimic's output to turtlesim2
+    therefore, turtlesim2 mimic turtlesim1
+  -->
+  <node pkg="turtlesim" name="mimic" type="mimic">
+    <remap from="input" to="turtlesim1/turtle1"/>
+    <remap from="output" to="turtlesim2/turtle1"/>
+  </node>
+</launch>
+```
+
+#### Edit File in ROS with rosed
+```python
+# Tutorial: http://wiki.ros.org/ROS/Tutorials/UsingRosEd
+
+# directly edit a file within a package
+# template: $ rosed [package_name] [filename]
+$ rosed roscpp Logger.msg
+
+# see and optionally edit all files from a package without knowing its exact name
+# template: $ rosed [package_name] <tab><tab>
+$ rosed roscpp <tab><tab>
+```
+
+#### Using Msg and Srv
+```python
+
+# Tutorial: http://wiki.ros.org/ROS/Tutorials/CreatingMsgAndSrv
+
+# msg files are text file that describes the field of a ROS message
+
+# srv files describes a service. It composed with two parts: request and response
+
+# Sample msg file:
+#   Header header
+#   string child_frame_id
+#   geometry_msgs/PoseWithCovariance pose
+#   geometry_msgs/TwistWithCovariance twist
+
+# Sample srv file: '---' distinguishes request and response
+# int64 A and int64 B are requests, int64 Sum is response
+#   int64 A
+#   int64 B
+#   ---
+#   int64 Sum
+```
+##### Msg
+```python
+# Creating a msg
+
+# create a msg directory in beginner_tutorials
+$ cd ~/catkin_ws/src/beginner_tutorials
+$ mkdir msg
+
+# create a msg file named Num and insert it with int64 Num
+$ echo "int64 num" > /msg/Num.msg
+
+# put this in package.xml file inside beginner_tutorials so that
+# the msg files are turned into source code for C++, python, and other languages
+<build_depend>message_generation</build_depend>
+<run_depend>message_runtime</run_depend>
+
+# add this inside CMakeLists.txt under find_package(catkin REQUIRED COMPONENTS)
+message_generation
+
+add lots of stuff, please visit the tutorial link
+
+# before accessing the msg file
+# remember to source the package first
+$ cd ~/catkin_ws
+$ source devel/setup.bash
+
+# template: rosmsg show [message type]
+$ rosmsg show beginner_tutorials/Num
+
+$ rosmsg show Num
 
 ```
 
+##### Srv
+```python
+# Create a srv
+
+$ roscd beginner_tutorials
+$ mkdir srv
+
+# copy a srv file from rospy package to beginner_tutorial package
+# template: roscp [package_name] [file_to_copy_path] [copy_path]
+$ roscp rospy_tutorials AddTwoInts.srv srv/AddTwoInts.srv
+
+add lots of stuff, please visit the tutorial link
+
+$ rossrv show AddTwoInts
+
+```
+#### Publisher and Subscriber
+##### Publisher
+```c
+  #include "ros/ros.h"
+  #include "std_msgs/String.h"
+
+  #include <sstream>
+
+  /**
+   * This tutorial demonstrates simple sending of messages over the ROS system.
+   */
+  int main(int argc, char **argv)
+  {
+    /**
+     * The ros::init() function needs to see argc and argv so that it can perform
+     * any ROS arguments and name remapping that were provided at the command line.
+     * For programmatic remappings you can use a different version of init() which takes
+     * remappings directly, but for most command-line programs, passing argc and argv is
+     * the easiest way to do it.  The third argument to init() is the name of the node.
+     *
+     * You must call one of the versions of ros::init() before using any other
+     * part of the ROS system.
+     */
+    ros::init(argc, argv, "talker");
+
+    /**
+     * NodeHandle is the main access point to communications with the ROS system.
+     * The first NodeHandle constructed will fully initialize this node, and the last
+     * NodeHandle destructed will close down the node.
+     */
+    ros::NodeHandle n;
+
+    /**
+     * The advertise() function is how you tell ROS that you want to
+     * publish on a given topic name. This invokes a call to the ROS
+     * master node, which keeps a registry of who is publishing and who
+     * is subscribing. After this advertise() call is made, the master
+     * node will notify anyone who is trying to subscribe to this topic name,
+     * and they will in turn negotiate a peer-to-peer connection with this
+     * node.  advertise() returns a Publisher object which allows you to
+     * publish messages on that topic through a call to publish().  Once
+     * all copies of the returned Publisher object are destroyed, the topic
+     * will be automatically unadvertised.
+     *
+     * The second parameter to advertise() is the size of the message queue
+     * used for publishing messages.  If messages are published more quickly
+     * than we can send them, the number here specifies how many messages to
+     * buffer up before throwing some away.
+     */
+    ros::Publisher chatter_pub = n.advertise<std_msgs::String>("chatter", 1000);
+
+    ros::Rate loop_rate(10);
+
+    /**
+     * A count of how many messages we have sent. This is used to create
+     * a unique string for each message.
+     */
+    int count = 0;
+    while (ros::ok())
+    // remember to add the bracket. I comment it because my editor is acting
+    // weird for markdown file
+    // {
+      /**
+       * This is a message object. You stuff it with data, and then publish it.
+       */
+      std_msgs::String msg;
+
+      std::stringstream ss;
+      ss << "hello world " << count;
+      msg.data = ss.str();
+
+      ROS_INFO("%s", msg.data.c_str());
+
+      /**
+       * The publish() function is how you send messages. The parameter
+       * is the message object. The type of this object must agree with the type
+       * given as a template parameter to the advertise<>() call, as was done
+       * in the constructor above.
+       */
+      chatter_pub.publish(msg);
+
+      ros::spinOnce();
+
+      loop_rate.sleep();
+      ++count;
+    }
+
+
+    return 0;
+  }
+```
+
+##### Subscriber
+```c++
+#include "ros/ros.h"
+#include "std_msgs/String.h"
+
+/**
+ * This tutorial demonstrates simple receipt of messages over the ROS system.
+ */
+void chatterCallback(const std_msgs::String::ConstPtr& msg)
+{
+  ROS_INFO("I heard: [%s]", msg->data.c_str());
+}
+
+int main(int argc, char **argv)
+{
+  /**
+   * The ros::init() function needs to see argc and argv so that it can perform
+   * any ROS arguments and name remapping that were provided at the command line.
+   * For programmatic remappings you can use a different version of init() which takes
+   * remappings directly, but for most command-line programs, passing argc and argv is
+   * the easiest way to do it.  The third argument to init() is the name of the node.
+   *
+   * You must call one of the versions of ros::init() before using any other
+   * part of the ROS system.
+   */
+  ros::init(argc, argv, "listener");
+
+  /**
+   * NodeHandle is the main access point to communications with the ROS system.
+   * The first NodeHandle constructed will fully initialize this node, and the last
+   * NodeHandle destructed will close down the node.
+   */
+  ros::NodeHandle n;
+
+  /**
+   * The subscribe() call is how you tell ROS that you want to receive messages
+   * on a given topic.  This invokes a call to the ROS
+   * master node, which keeps a registry of who is publishing and who
+   * is subscribing.  Messages are passed to a callback function, here
+   * called chatterCallback.  subscribe() returns a Subscriber object that you
+   * must hold on to until you want to unsubscribe.  When all copies of the Subscriber
+   * object go out of scope, this callback will automatically be unsubscribed from
+   * this topic.
+   *
+   * The second parameter to the subscribe() function is the size of the message
+   * queue.  If messages are arriving faster than they are being processed, this
+   * is the number of messages that will be buffered up before beginning to throw
+   * away the oldest ones.
+   */
+  ros::Subscriber sub = n.subscribe("chatter", 1000, chatterCallback);
+
+  /**
+   * ros::spin() will enter a loop, pumping callbacks.  With this version, all
+   * callbacks will be called from within this thread (the main one).  ros::spin()
+   * will exit when Ctrl-C is pressed, or the node is shutdown by the master.
+   */
+  ros::spin();
+
+  return 0;
+}
+```
+##### Building Your Node for Publishers and Subscribers
+```python
+# add this at the bottom of CMakeList.txt of the beginner_tutorials package
+
+include_directories(include ${catkin_INCLUDE_DIRS})
+
+add_executable(talker src/talker.cpp)
+target_link_libraries(talker ${catkin_LIBRARIES})
+add_dependencies(talker beginner_tutorials_generate_messages_cpp)
+
+add_executable(listener src/listener.cpp)
+target_link_libraries(listener ${catkin_LIBRARIES})
+add_dependencies(listener beginner_tutorials_generate_messages_cpp)
+```
+
+##### Test out your Publisher and Subscriber
+```python
+# run roscore first
+$ roscore
+
+# source the environment
+$ cd ~/catkin_ws
+$ source ./devel/setup.bash
+
+# if either publisher or subscriber can't not be run, source the environment
+# run the publisher
+$ rosrun beginner_tutorials talker
+
+# run the subscriber
+$ rosrun beginner_tutorials listener
+```
+
+#### Service and Client
+```python
+# go to beginner_tutorials package directory
+$ cd ~/catkin_ws/src/beginner_tutorials
+
+# remember to create AddTwoInts.srv first
+```
+
+##### Service
+###### create add_two_ints_server.cpp under src directory
+```python
+#include "ros/ros.h"
+#include "beginner_tutorials/AddTwoInts.h"
+
+bool add(beginner_tutorials::AddTwoInts::Request  &req,
+         beginner_tutorials::AddTwoInts::Response &res)
+{
+  res.sum = req.a + req.b;
+  ROS_INFO("request: x=%ld, y=%ld", (long int)req.a, (long int)req.b);
+  ROS_INFO("sending back response: [%ld]", (long int)res.sum);
+  return true;
+}
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "add_two_ints_server");
+  ros::NodeHandle n;
+
+  ros::ServiceServer service = n.advertiseService("add_two_ints", add);
+  ROS_INFO("Ready to add two ints.");
+  ros::spin();
+
+  return 0;
+}
+```
+
+##### Client
+###### create add_two_ints_client.cpp under src directory
+```python
+#include "ros/ros.h"
+#include "beginner_tutorials/AddTwoInts.h"
+#include <cstdlib>
+
+int main(int argc, char **argv)
+{
+  ros::init(argc, argv, "add_two_ints_client");
+  if (argc != 3)
+  {
+    ROS_INFO("usage: add_two_ints_client X Y");
+    return 1;
+  }
+
+  ros::NodeHandle n;
+  ros::ServiceClient client = n.serviceClient<beginner_tutorials::AddTwoInts>("add_two_ints");
+  beginner_tutorials::AddTwoInts srv;
+  srv.request.a = atoll(argv[1]);
+  srv.request.b = atoll(argv[2]);
+  if (client.call(srv))
+  {
+    ROS_INFO("Sum: %ld", (long int)srv.response.sum);
+  }
+  else
+  {
+    ROS_ERROR("Failed to call service add_two_ints");
+    return 1;
+  }
+
+  return 0;
+}
+```
+##### Build your Node for Services and Clients
+```python
+# add this into CMakeLists.txt
+
+add_executable(add_two_ints_server src/add_two_ints_server.cpp)
+target_link_libraries(add_two_ints_server ${catkin_LIBRARIES})
+add_dependencies(add_two_ints_server beginner_tutorials_gencpp)
+
+add_executable(add_two_ints_client src/add_two_ints_client.cpp)
+target_link_libraries(add_two_ints_client ${catkin_LIBRARIES})
+add_dependencies(add_two_ints_client beginner_tutorials_gencpp)
+
+# remember to build
+$ cd ~/catkin_ws
+$ catkin_make
+```
+
+##### Test Services and Clients
+```python
+# remember to source the environment first
+$ cd ~/catkin_ws
+$ catkin_make
+
+# open the server to listen to the message
+$ rosrun beginner_tutorials add_two_ints_server
+
+# send the request with two arguments 1 3,
+# the server should receive 1 for x and 3 for y and add them together to 4
+$ rosrun beginner_tutorials add_two_ints_client 1 3
+```
+
+#### Recording and Playing Back Data
+
+##### Recording data
+```python
+# let's run the essential simulator to test out the command
+# this will start two nodes
+$ roscore
+$ rosrun turtlesim turtlesim_node
+$ rosrun turtlesim turtle_teleop_key
+
+
+# list out all the topic with detail info about publishers and subscribers
+$ rostopic list -v
+
+# record publishers data
+
+# create a directory call bagfiles in home directory and go into it
+$ mkdir ~/bagfiles
+$ cd ~/bagfiles
+
+# running rosbag record that record all published topics
+$ rosbag record -a
+
+# go back to turtle_teleop_key to move the turtle around
+# quit the rosbag record by typing ctrl-c in the window
+```
+
+##### Examing Data
+```python
+# after we quit the rosbag record, we should have a .bag file save
+# in bagfiles directory specified with year, data, and time
+
+# get information about the recorded data
+$ rosbag info <your bag_file>
+
+# play back the recorded data in the simulator,
+# the turtle should move around with the similar pattern as before
+$ rosbag play <your bag_file>
+
+# play back the data twise faster
+$ rosbag play -r 2 <your bag_file>
+
+```
+##### Recording a Subset of Data
+```python
+# -O tells rosbag record to log a file named subset.bag
+# and only subscribes to topics that specified. In this case: cmd_vel and pose
+$ rosbag record -O subset /turtle1/cmd_vel /turtle1/pose
+```
+
+#### ROSWTF for Debugging
+```python
+# roswtf can give you some feedback such as warning and errors
+# we usually call roscd first then call roswtf
+
+$ roscd
+$ roswtf
+```
 
 #### Sample Package
 ```python

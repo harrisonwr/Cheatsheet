@@ -1,6 +1,5 @@
 Basic TMUX Tutorials
 =======================
-
 ###Play with Windows
 ```python
 # start tmux server
@@ -50,6 +49,9 @@ ctrl-b + x
 # kill everything in tmux
 ctrl-b + d
 
+# scroll in the window/pane
+ctrl-b + :
+setw -g mode-mouse on
 ```
 
 ### Play with Sessions
@@ -60,3 +62,7 @@ $ tmux new -s backupsession
 # attach back to the session
 $ tmux attach -t backupsession
 ```
+### More Info
+##### http://www.dayid.org/os/notes/tm.html
+##### https://danielmiessler.com/study/tmux/
+##### https://gist.github.com/henrik/1967800
