@@ -314,7 +314,7 @@ $ roscd beginner_tutorials
 # if "No such package/stack 'beginner_tutorials'",
 # you will need to source the environment first
 $ cd ~/catkin_ws
-$ source devel_setup.bash
+$ source devel/setup.bash
 $ roscd beginner_tutorials
 
 # create a launch folder and go to the launch folder
