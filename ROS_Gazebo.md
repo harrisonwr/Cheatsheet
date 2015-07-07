@@ -25,7 +25,10 @@ $ roslaunch gazebo_ros willowgarage_world.launch
       Start gzserver (Gazebo Server) in debug mode using gdb (default false)
 ```
 ##### Sample Launch File( mud_world.launch )
-```html
+```xml
+<!--
+  This file is locate at /opt/ros/indigo/share/gazebo_ros/launch
+-->
 <launch>
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -105,8 +108,19 @@ Step3: Within the launch folder, create a YOURBOT.launch file
 Step4: Within MYROBOT_gazebo package, create a worlds folder
 Step5: Within the worlds folder, create a MYROBOT.world file
 
-/* Step3: YOURBOT.launch */
-/* Remember to replace MYROBOT with the name of the robot or directory's name */
+<!-- Step1  -->
+$ cd ~/catkin_ws/src
+$ mkdir MYROBOT
+$ cd MYROBOT
+$ catkin_create_pkg MYROBOT_gazebo
+$ cd MYROBOT_gazebo
+
+<!-- Step2 -->
+$ mkdir launch
+$ atom YOURBOT.launch
+
+<!-- Step3: YOURBOT.launch -->
+<!-- Remember to replace MYROBOT with the name of the robot or directory's name -->
 <launch>
   <!-- We resume the logic in empty_world.launch, changing only the name of the world to be launched -->
   <include file="$(find gazebo_ros)/launch/empty_world.launch">
@@ -115,7 +129,12 @@ Step5: Within the worlds folder, create a MYROBOT.world file
   </include>
 </launch>
 
-/* Step5: MYROBOT.world */
+<!-- Step4 -->
+$ cd ~/catkin_ws/src/MYROBOT/MYROBOT_gazebo
+$ mkdir world
+$ atom MYROBOT.world
+
+<!-- Step5: MYROBOT.world -->
 <?xml version="1.0" ?>
 <sdf version="1.4">
   <world name="default">
@@ -186,4 +205,10 @@ $ catkin_make
 
 # View in Rviz
 $ roslaunch rrbot_description rrbot_rviz.launch
+
+# If encounter this error:
+# Failed to load plugin libgazebo_ros_control.so: libgazebo_ros_control.so:
+# cannot open shared object file: No such file or directory
+# install this
+$ sudo apt-get install ros-indigo-gazebo-ros-control
 ```
