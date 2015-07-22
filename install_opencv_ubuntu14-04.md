@@ -2,6 +2,7 @@ Install OpenCV on Ubuntu 14.04
 ===
 ```python
 # Follow this instruction at your home directory.
+# Tutorial: https://help.ubuntu.com/community/OpenCV
 
 $ version="$(wget -q -O - http://sourceforge.net/projects/opencvlibrary/files/opencv-unix | egrep -m1 -o '\"[0-9](\.[0-9]+)+' | cut -c2-)"
 
