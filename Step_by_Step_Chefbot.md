@@ -114,7 +114,7 @@ $ roslaunch chefbot_gazebo chefbot_playground.launch
 
 ## How the Chefbot Constructs
 Since we clone the files from chefbot and turtlebot packages, we will try to explain the code following how the program been called.
-To do so, we will create packages to build chefbot from scratch.
+To do so, we will create packages to build chefbot from scratch. There will have some minor adjustment with the joints and links
 
 ### Setup
 We are going to name the robot myturtle
@@ -176,7 +176,7 @@ We will load a empty_world from gazebo_ros package
 </launch>
 ```
 
-Launch the empty world
+Launch the empty world, we will call this command to see what the robot looks like later on.
 ```python
 $ roslaunch myturtle_gazebo myturtle_empty_world.launch
 ```
@@ -288,18 +288,23 @@ We will create a "kobuki" macro for the robot and load the robot base inside thi
 <robot name="myturtle" xmlns:xacro="httpL//ros.org/wiki/xacro">
 
   <!--
-    This is some variable that we might use later on. If we have too many variables that make the program unorganized, we will create a files just for variables.
+    This is some variable that we might use later on. If we have too many variables
+    that make the program unorganized, we will create a files just for variables.
     -->
   <xacro:property name="M_PI" value="3.1415926535897931" />
 
-  <!-- we use macro to wrap around our robot model so that we can access it in myturtle_circles_kinect.xacro.urdf -->
+  <!-- custom variables -->
+  <xacro:property name="BASE_OFFSET_GND" value="0.1" />
+  <xacro:property name="BASE_VISUAL_OFFSET_JOINT" value="-0.045" />
+  <xacro:property name="BASE_COLLISION_HEIGHT" value="0.3" />
+
   <xacro:macro name="kobuki">
     <!-- root link -->
     <link name="base_footprint"/>
 
     <!-- joint for base_footprint and base_link(root <- base_link) -->
     <joint name="base_joint" type="fixed">
-        <origin xyz="0 0 0.0102" rpy="0 0 0" />
+        <origin xyz="0 0 ${BASE_OFFSET_GND}" rpy="0 0 0" />
         <parent link="base_footprint" />
         <child link="base_link" />
     </joint>
@@ -307,26 +312,25 @@ We will create a "kobuki" macro for the robot and load the robot base inside thi
     <link name="base_link">
       <visual>
         <!-- uncomment the code below to see how the collision model looks like -->
-        <!--
-        <geometry>
-          <cylinder length="0.10938" radius="0.178"/>
+
+        <!-- <geometry>
+          <cylinder length="${BASE_COLLISION_HEIGHT}" radius="0.178"/>
         </geometry>
-        <origin xyz="0 0 0.05949" rpy="0 0 0"/>
-        -->
+        <origin xyz="0.0 0 ${BASE_COLLISION_HEIGHT/2}" rpy="0 0 0"/> -->
 
         <!-- myturtle base, we use chefbot's base 3D model -->
         <geometry>
           <!-- new mesh -->
           <mesh filename="package://chefbot_description/meshes/base_plate.dae" />
         </geometry>
-        <origin xyz="0.001 0 -0.034" rpy="0 0 ${M_PI/2}"/>
+        <origin xyz="0.001 0 ${BASE_VISUAL_OFFSET_JOINT}" rpy="0 0 ${M_PI/2}"/>
       </visual>
 
       <collision>
         <geometry>
-          <cylinder length="0.10938" radius="0.178"/>
+          <cylinder length="${BASE_COLLISION_HEIGHT}" radius="0.178"/>
         </geometry>
-        <origin xyz="0.0 0 0.05949" rpy="0 0 0"/>
+        <origin xyz="0.0 0 ${BASE_COLLISION_HEIGHT/2}" rpy="0 0 0"/>
       </collision>
 
       <inertial>
@@ -363,8 +367,11 @@ The Base should look like this
 <br></br>
 ![Myturtle Frame](images/myturtle_frame.png)
 
+###### Optional Step To Help You Understand
 If you want to see how the collision model looks like, we use the geometry and origin of collision model into visual.
 uncomment the code in visual tag and comment the robot model(.dae) we loaded in previous section.
+<br></br>
+Remember to change back to previous step after you done seeing the collision model since we don't need to see collision mode most of the time.
 ```xml
 <!-- myturtle_base.urdf.xacro -->
 <?xml version="1.0" ?>
@@ -376,9 +383,9 @@ uncomment the code in visual tag and comment the robot model(.dae) we loaded in 
     <visual>
       <!-- uncomment the code below to see how the collision model looks like -->
       <geometry>
-        <cylinder length="0.10938" radius="0.178"/>
+        <cylinder length="${BASE_COLLISION_HEIGHT}" radius="0.178"/>
       </geometry>
-      <origin xyz="0 0 0.05949" rpy="0 0 0"/>
+      <origin xyz="0.0 0 ${BASE_COLLISION_HEIGHT/2}" rpy="0 0 0"/>
 
       <!-- myturtle base, we use chefbot's base 3D model -->
       <!--
@@ -395,4 +402,237 @@ We can see that the collision model of the base is just a simple cylinder and no
 <br></br>
 ![MyTurtle Frame Collision](images/myturtle_frame_collision.png)
 
-##### Give myturtle wheels
+##### Give MyTurtle Wheels
+We want to add left and right wheels to the robot. To do so, we approximate where the wheels should be based on the base plate. Since the given wheel model from chefbot is not accurate, we recreate our wheel and the measure the location of the motor and place our wheel at the right location. We can approximate the size and location of the wheel because we don't need high precision in this case.
+<br></br>
+We change the values of origin's z-value, cylinder's radius of collision and visual from 0.035 to 0.04 meters
+```xml
+<!-- chefbot_base.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  ...
+  <!-- custom variables -->
+  ...
+  <xacro:property name="WHEEL_OFFSET" value="${0.03 - BASE_VISUAL_OFFSET_JOINT}" /> <!-- WHEEL_OFFSET + BASE_VISUAL_OFFSET_JOINT = 0.03 -->
+  <xacro:property name="WHEEL_RADIUS" value="0.035" />
+  <xacro:property name="WHEEL_VISUAL_OFFSET" value="0.02" />
+
+  <xacro:macro name="kobuki">
+    ...
+    <link name="base_link"> ... </link>
+
+    <joint name="wheel_left_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="myturtle_wheel_left_link"/>
+      <origin xyz="0 ${0.28/2} ${WHEEL_OFFSET+BASE_VISUAL_OFFSET_JOINT}" rpy="${-M_PI/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="myturtle_wheel_left_link">
+      <visual>
+        <geometry>
+          <cylinder length="0.0206" radius="${WHEEL_RADIUS}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder length="0.0206" radius="${WHEEL_RADIUS}"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+      </collision>
+      <inertial>
+        <mass value="0.01" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001" />
+      </inertial>
+    </link>
+
+    <joint name="wheel_right_joint" type="continuous">
+      <parent link="base_link"/>
+      <child link="myturtle_wheel_right_link"/>
+      <origin xyz="0 -${0.28/2} ${WHEEL_OFFSET+BASE_VISUAL_OFFSET_JOINT}" rpy="${-M_PI/2} 0 0"/>
+      <axis xyz="0 0 1"/>
+    </joint>
+    <link name="myturtle_wheel_right_link">
+      <visual>
+        <geometry>
+          <cylinder length="0.0206" radius="${WHEEL_RADIUS}"/>
+        </geometry>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+      </visual>
+      <collision>
+        <geometry>
+          <cylinder length="0.0206" radius="${WHEEL_RADIUS}"/>
+        </geometry>
+        <origin rpy="0 0 0" xyz="0 0 0"/>
+      </collision>
+      <inertial>
+        <mass value="0.01" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+                 iyy="0.001" iyz="0.0"
+                 izz="0.001" />
+      </inertial>
+    </link>
+  </xacro:macro>
+</robot>
+```
+After launching our program, we should see the robot with two wheels.
+<br></br>
+![MyTurtle with wheels](images/myturtle_with_wheels.png)
+
+##### Setup Joints of Two Caster Wheels
+```xml
+<!-- myturtle_base.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  <!-- custom variables -->
+  ...
+  <xacro:property name="CASTER_RADIUS" value="${WHEEL_RADIUS - 0.0295}" /> <!-- CASTER_RADIUS = WHEEL_RADIUS - 0.03 -->
+
+  ...
+  <link name="myturtle_wheel_right_link"> ... </link>
+
+  <!-- Joint between myturtle base link and myturtle front caster wheel -->
+  <!-- Since caster wheel doesn't move in a particular direction, we set the joint to fixed -->
+  <joint name="caster_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="myturtle_caster_front_link"/>
+    <origin xyz="0.115 0.0 0" rpy="${-M_PI/2} 0 0"/>
+  </joint>
+  <link name="myturtle_caster_front_link">
+    <!-- Uncomment the visual will let you see how the caster wheel collision looks like -->
+    <!-- <visual>
+      <geometry>
+        <cylinder length="0.0176" radius="${CASTER_RADIUS}"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </visual> -->
+    <collision>
+      <geometry>
+        <cylinder length="0.0176" radius="${CASTER_RADIUS}"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.01" />
+      <origin xyz="0 0 0" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001" />
+    </inertial>
+  </link>
+
+
+  <!-- Joint between myturtle base link and myturtle front caster wheel -->
+  <joint name="myturtle_caster_back_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="myturtle_caster_back_link"/>
+    <origin xyz="-0.135 0.0 0" rpy="${-M_PI/2} 0 0"/>
+  </joint>
+  <link name="myturtle_caster_back_link">
+    <!-- Uncomment the visual can let you see how the caster wheel collision looks like -->
+    <!-- <visual>
+      <geometry>
+        <cylinder length="0.0176" radius="${CASTER_RADIUS}"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </visual> -->
+    <collision>
+      <geometry>
+        <cylinder length="0.0176" radius="${CASTER_RADIUS}"/>
+      </geometry>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+    </collision>
+    <inertial>
+      <mass value="0.01" />
+      <origin xyz="0 0 0" />
+      <inertia ixx="0.001" ixy="0.0" ixz="0.0"
+               iyy="0.001" iyz="0.0"
+               izz="0.001" />
+    </inertial>
+  </link>
+</robot>
+```
+You can see that adding the joint of collision balanced the robot. The robot wasn't level because it doesn't have the support of front and caster wheel
+<br></br>
+![Caster Wheel Collision](images/myturtle_caster_collision.png)
+
+Uncomment the visual section of code will let you see how the collision of caster wheels looks like
+<br></br>
+![Caster Wheel Visual of Collision](images/myturtle_caster_collision_visual.png)
+
+
+We want to add gyro and cliff sensor on our robot.
+```xml
+<?xml version="1.0"?>
+<robot>
+  ...
+  <xacro:macro name="kobuki">
+    ...
+    <!-- Kobuki's sensors -->
+    <joint name="gyro_joint" type="fixed">
+      <axis xyz="0 1 0"/>
+      <origin xyz="0.056 0.062 0.0202" rpy="0 0 0"/>
+      <parent link="base_link"/>
+      <child link="gyro_link"/>
+    </joint>
+    <link name="gyro_link">
+      <inertial>
+        <mass value="0.001"/>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <inertia ixx="0.0001" ixy="0" ixz="0"
+                 iyy="0.000001" iyz="0"
+                 izz="0.0001"/>
+      </inertial>
+    </link>
+
+    <joint name="cliff_sensor_left_joint" type="fixed">
+      <origin xyz="0.08734 0.13601 0.0214" rpy="0 ${M_PI/2} 0" />
+      <parent link="base_link"/>
+      <child link="cliff_sensor_left_link" />
+    </joint>
+    <link name="cliff_sensor_left_link">
+      <inertial>
+        <mass value="0.0001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+    </link>
+
+    <joint name="cliff_sensor_right_joint" type="fixed">
+      <origin xyz="0.085 -0.13601 0.0214" rpy="0 ${M_PI/2} 0" />
+      <parent link="base_link"/>
+      <child link="cliff_sensor_right_link" />
+    </joint>
+    <link name="cliff_sensor_right_link">
+      <inertial>
+        <mass value="0.0001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+    </link>
+
+    <joint name="cliff_sensor_front_joint" type="fixed">
+      <origin xyz="0.156 0.00 0.0214" rpy="0 ${M_PI/2} 0" />
+      <parent link="base_link"/>
+      <child link="cliff_sensor_front_link" />
+    </joint>
+    <link name="cliff_sensor_front_link">
+      <inertial>
+        <mass value="0.0001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+    </link>
+  </xacro:macro>
+</robot>
+```
