@@ -205,6 +205,7 @@ The file hierarchy is going to look like this in this stage
       myturtle_circles_kinect.xacro
     /urdf
       myturtle_base.urdf.xacro
+      myturtle_base_gazebo.urdf.xacro
       myturtle_library.urdf.xacro
     CMakeList.txt
     package.xml
@@ -407,7 +408,7 @@ We want to add left and right wheels to the robot. To do so, we approximate wher
 <br></br>
 We change the values of origin's z-value, cylinder's radius of collision and visual from 0.035 to 0.04 meters
 ```xml
-<!-- chefbot_base.urdf.xacro -->
+<!-- myturtle_base.urdf.xacro -->
 <?xml version="1.0"?>
 <robot>
   ...
@@ -565,8 +566,10 @@ Uncomment the visual section of code will let you see how the collision of caste
 ![Caster Wheel Visual of Collision](images/myturtle_caster_collision_visual.png)
 
 
-We want to add gyro and cliff sensor on our robot.
+##### Add Joints and Links for Gyro and Cliff Sensors
+We will define the joint and links for gyro and cliff Sensors. Later on, we will defined sensors' properties for gazebo
 ```xml
+<!-- myturtle_base.urdf.xacro -->
 <?xml version="1.0"?>
 <robot>
   ...
@@ -636,3 +639,230 @@ We want to add gyro and cliff sensor on our robot.
   </xacro:macro>
 </robot>
 ```
+
+##### Adding Gazebo Properties for MyTurtle Base
+We need to create a file myturtle_base_gazebo.urdf.xacro in urdf folder and include it in myturtle_base.urdf.xacro
+```xml
+<!-- myturtle_base.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  <xacro:include name="$(find myturtle_description)/urdf/myturtle_base_gazebo.urdf.xacro"/>
+  ...
+</robot>
+```
+
+Let's take a look what gazebo properties we need to add to our sensors
+```xml
+<?xml version="1.0"?>
+
+<robot name="kobuki_sim" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="kobuki_sim">
+	  <!-- Adding physics coefficients to wheels and caster wheels -->
+    <gazebo reference="chefbot_wheel_left_link">
+	    <mu1>1.0</mu1>
+	    <mu2>1.0</mu2>
+	    <kp>1000000.0</kp>
+	    <kd>100.0</kd>
+	    <minDepth>0.001</minDepth>
+	    <maxVel>1.0</maxVel>
+	  </gazebo>
+
+	  <gazebo reference="chefbot_wheel_right_link">
+	    <mu1>1.0</mu1>
+	    <mu2>1.0</mu2>
+	    <kp>1000000.0</kp>
+	    <kd>100.0</kd>
+	    <minDepth>0.001</minDepth>
+	    <maxVel>1.0</maxVel>
+	  </gazebo>
+
+	  <gazebo reference="chefbot_caster_front_link">
+	    <mu1>0.0</mu1>
+	    <mu2>0.0</mu2>
+	    <kp>1000000.0</kp>
+	    <kd>100.0</kd>
+	    <minDepth>0.001</minDepth>
+	    <maxVel>1.0</maxVel>
+	  </gazebo>
+
+	  <gazebo reference="chefbot_caster_back_link">
+	    <mu1>0.0</mu1>
+	    <mu2>0.0</mu2>
+	    <kp>1000000.0</kp>
+	    <kd>100.0</kd>
+	    <minDepth>0.001</minDepth>
+	    <maxVel>1.0</maxVel>
+	  </gazebo>
+
+    <!-- set our base as the bumper -->
+	  <gazebo reference="base_link">
+	    <mu1>0.3</mu1>
+	    <mu2>0.3</mu2>
+	    <sensor type="contact" name="bumpers">
+	      <always_on>1</always_on>
+	      <update_rate>50.0</update_rate>
+	      <visualize>true</visualize>
+	      <contact>
+	        <collision>base_footprint_collision_base_link</collision>
+	      </contact>
+	    </sensor>
+	  </gazebo>
+
+    <!-- set cliff sensors, we have three cliff sensors in this case -->
+	  <gazebo reference="cliff_sensor_left_link">
+	    <sensor type="ray" name="cliff_sensor_left">
+	      <always_on>true</always_on>
+	      <update_rate>50</update_rate>
+	      <visualize>true</visualize>
+	      <ray>
+	        <scan>
+	          <horizontal>
+	            <samples>50</samples>
+	            <resolution>1.0</resolution>
+	            <min_angle>-0.0436</min_angle>  <!-- -2.5 degree -->
+	            <max_angle>0.0436</max_angle> <!-- 2.5 degree -->
+	          </horizontal>
+<!--            Can't use vertical rays until this bug is resolved: -->
+<!--            https://bitbucket.org/osrf/gazebo/issue/509/vertical-sensor-doesnt-works -->
+<!-- 	          <vertical> -->
+<!-- 	            <samples>50</samples> -->
+<!-- 	            <resolution>1.0</resolution> -->
+<!-- 	            <min_angle>-0.0436</min_angle>  -2.5 degree -->
+<!-- 	            <max_angle>0.0436</max_angle> 2.5 degree -->
+<!-- 	          </vertical> -->
+	        </scan>
+	        <range>
+	          <min>0.01</min>
+	          <max>0.15</max>
+	          <resolution>1.0</resolution>
+	        </range>
+	      </ray>
+	    </sensor>
+	  </gazebo>
+
+	  <gazebo reference="cliff_sensor_right_link">
+	    <sensor type="ray" name="cliff_sensor_right">
+	      <always_on>true</always_on>
+	      <update_rate>50</update_rate>
+	      <visualize>true</visualize>
+	      <ray>
+	        <scan>
+	          <horizontal>
+	            <samples>50</samples>
+	            <resolution>1.0</resolution>
+	            <min_angle>-0.0436</min_angle>  <!-- -2.5 degree -->
+	            <max_angle>0.0436</max_angle> <!-- 2.5 degree -->
+	          </horizontal>
+<!--            Can't use vertical rays until this bug is resolved: -->
+<!--            https://bitbucket.org/osrf/gazebo/issue/509/vertical-sensor-doesnt-works -->
+<!-- 	          <vertical> -->
+<!-- 	            <samples>50</samples> -->
+<!-- 	            <resolution>1.0</resolution> -->
+<!-- 	            <min_angle>-0.0436</min_angle>  -2.5 degree -->
+<!-- 	            <max_angle>0.0436</max_angle> 2.5 degree -->
+<!-- 	          </vertical> -->
+	        </scan>
+	        <range>
+	          <min>0.01</min>
+	          <max>0.15</max>
+	          <resolution>1.0</resolution>
+	        </range>
+	      </ray>
+	    </sensor>
+	  </gazebo>
+
+	  <gazebo reference="cliff_sensor_front_link">
+	    <sensor type="ray" name="cliff_sensor_front">
+	      <always_on>true</always_on>
+	      <update_rate>50</update_rate>
+	      <visualize>true</visualize>
+	      <ray>
+	        <scan>
+	          <horizontal>
+	            <samples>50</samples>
+	            <resolution>1.0</resolution>
+	            <min_angle>-0.0436</min_angle>  <!-- -2.5 degree -->
+	            <max_angle>0.0436</max_angle> <!-- 2.5 degree -->
+	          </horizontal>
+<!-- 	          Can't use vertical rays until this bug is resolved: -->
+<!--            https://bitbucket.org/osrf/gazebo/issue/509/vertical-sensor-doesnt-works -->
+<!-- 	          <vertical> -->
+<!-- 	            <samples>50</samples> -->
+<!-- 	            <resolution>1.0</resolution> -->
+<!-- 	            <min_angle>-0.0436</min_angle>  -2.5 degree -->
+<!-- 	            <max_angle>0.0436</max_angle> 2.5 degree -->
+<!-- 	          </vertical> -->
+	        </scan>
+	        <range>
+	          <min>0.01</min>
+	          <max>0.15</max>
+	          <resolution>1.0</resolution>
+	        </range>
+	      </ray>
+	    </sensor>
+	  </gazebo>
+
+    <!-- adding gyro sensors, the type is going to be imu -->
+	  <gazebo reference="gyro_link">
+	   <sensor type="imu" name="imu">
+        <always_on>true</always_on>
+        <update_rate>50</update_rate>
+        <visualize>false</visualize>
+        <imu>
+          <noise>
+            <type>gaussian</type>
+	          <rate>
+	            <mean>0.0</mean>
+	            <stddev>${0.0014*0.0014}</stddev> <!-- 0.25 x 0.25 (deg/s) -->
+	            <bias_mean>0.0</bias_mean>
+	            <bias_stddev>0.0</bias_stddev>
+	          </rate>
+		        <accel> <!-- not used in the plugin and real robot, hence using tutorial values -->
+			        <mean>0.0</mean>
+			        <stddev>1.7e-2</stddev>
+			        <bias_mean>0.1</bias_mean>
+			        <bias_stddev>0.001</bias_stddev>
+		        </accel>
+          </noise>
+	      </imu>
+      </sensor>
+	  </gazebo>
+
+    <!--
+      kobuki plugin takes in three cliff sensors, imu, and bumper data
+      In addition, this plugin will need to know wheel_separation and wheel_diameter
+     -->
+	  <gazebo>
+	    <plugin name="kobuki_controller" filename="libgazebo_ros_kobuki.so">
+	      <publish_tf>1</publish_tf>
+	      <left_wheel_joint_name>wheel_left_joint</left_wheel_joint_name>
+	      <right_wheel_joint_name>wheel_right_joint</right_wheel_joint_name>
+	      <wheel_separation>.30</wheel_separation>
+	      <wheel_diameter>${WHEEL_RADIUS*2}</wheel_diameter>
+	      <torque>18.0</torque>
+	      <velocity_command_timeout>0.6</velocity_command_timeout>
+	      <cliff_sensor_left_name>cliff_sensor_left</cliff_sensor_left_name>
+	      <cliff_sensor_center_name>cliff_sensor_front</cliff_sensor_center_name>
+	      <cliff_sensor_right_name>cliff_sensor_right</cliff_sensor_right_name>
+	      <cliff_detection_threshold>0.04</cliff_detection_threshold>
+	      <bumper_name>bumpers</bumper_name>
+        <imu_name>imu</imu_name>
+	    </plugin>
+	  </gazebo>
+  </xacro:macro>
+</robot>
+```
+
+Now we want to call **kobuki_sim** macro to bring in properties of sensors and simulate in gazebo
+```xml
+<!-- myturtle_base.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  ...
+  <!-- Macro defined in myturtle_base_gazebo.urdf.xacro -->
+  <kobuki_sim/>
+</robot>
+```
+When you launch the myturtle, you shuld be able to see some [INFO] about kobuki data
+<br></br>
+![Kobuki Controller](images/kobuki_controller.png)
