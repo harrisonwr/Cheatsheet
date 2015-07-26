@@ -297,7 +297,7 @@ We will create a "kobuki" macro for the robot and load the robot base inside thi
   <!-- custom variables -->
   <xacro:property name="BASE_OFFSET_GND" value="0.1" />
   <xacro:property name="BASE_VISUAL_OFFSET_JOINT" value="-0.045" />
-  <xacro:property name="BASE_COLLISION_HEIGHT" value="0.3" />
+  <xacro:property name="BASE_COLLISION_HEIGHT" value="0.1" />
 
   <xacro:macro name="kobuki">
     <!-- root link -->
@@ -401,7 +401,7 @@ Remember to change back to previous step after you done seeing the collision mod
 ```
 We can see that the collision model of the base is just a simple cylinder and not as tall as the actual base model. This is because we want to use simple shape for collision model to optimize the simulation speed
 <br></br>
-![MyTurtle Frame Collision](images/myturtle_frame_collision.png)
+![MyTurtle Frame Collision](images/chefbot_frame_collision.png)
 
 ##### Give MyTurtle Wheels
 We want to add left and right wheels to the robot. To do so, we approximate where the wheels should be based on the base plate. Since the given wheel model from chefbot is not accurate, we recreate our wheel and the measure the location of the motor and place our wheel at the right location. We can approximate the size and location of the wheel because we don't need high precision in this case.
@@ -491,7 +491,7 @@ After launching our program, we should see the robot with two wheels.
 <robot>
   <!-- custom variables -->
   ...
-  <xacro:property name="CASTER_RADIUS" value="${WHEEL_RADIUS - 0.0295}" /> <!-- CASTER_RADIUS = WHEEL_RADIUS - 0.03 -->
+  <xacro:property name="CASTER_RADIUS" value="${WHEEL_RADIUS - 0.0305}" /> <!-- CASTER_RADIUS = WHEEL_RADIUS - 0.0305 -->
 
   ...
   <link name="myturtle_wheel_right_link"> ... </link>
@@ -866,3 +866,294 @@ Now we want to call **kobuki_sim** macro to bring in properties of sensors and s
 When you launch the myturtle, you shuld be able to see some [INFO] about kobuki data
 <br></br>
 ![Kobuki Controller](images/kobuki_controller.png)
+
+#### Implement Kinect
+We add a file under /myturtle_description/meshes/urdf/sensors/kinect.urdf.xacro
+```xml
+~/catkin_ws/src/myturtle
+  /myturtle_gazebo
+    /launch
+      /include
+        myturtle_base.launch.xml
+      myturtle_empty_world.launch
+    CMakeList.txt
+    package.xml
+  /myturtle_description
+    /meshes
+    /robots
+      myturtle_circles_kinect.xacro
+    /urdf
+      /sensors
+        kinect.urdf.xacro
+      myturtle_base.urdf.xacro
+      myturtle_base_gazebo.urdf.xacro
+      myturtle_library.urdf.xacro
+      myturtle_properties.urdf.xacro
+    CMakeList.txt
+    package.xml
+```
+##### Include Kinect
+```xml
+<!-- myturtle_library.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  ...
+  <!-- Kinect Sensor -->
+  <xacro:include filename="$(find myturtle_description)/urdf/sensors/kinect.urdf.xacro" />
+</robot>
+```
+##### Define RGB Camera
+Let's defined some values to position the kinect camera. These values are for turtlebot model
+```xml
+<!-- myturtle_properties.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  <property name="cam_px" value="-0.087" />
+	<property name="cam_py" value="-0.0125" />
+	<property name="cam_pz" value="0.2870" />
+	<property name="cam_or" value="0" />
+	<property name="cam_op" value="0" />
+	<property name="cam_oy" value="0" />
+</robot>
+```
+Setting up joint and link for rgb camera
+```xml
+<!-- kinect.urdf.xacro -->
+<?xml version="1.0"?>
+<robot name="sensor_kinect" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:macro name="sensor_kinect" param="parent">
+    <!-- include camera position values from myturtle properties -->
+    <xacro:include filename="$(find myturtle_description)/urdf/myturtle_properties.urdf.xacro" />
+
+    <joint name="camera_rgb_joint" type="fixed">
+      <origin xyz="${cam_px} ${cam_py} ${cam_pz}" rpy="${cam_or} ${cam_op} ${cam_oy}"/>
+      <parent link="${parent}"/>
+      <child link="camera_rgb_frame" />
+    </joint>
+    <link name="camera_rgb_frame">
+      <inertial>
+        <mass value="0.001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+    </link>
+    <joint name="camera_rgb_optical_joint" type="fixed">
+      <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
+      <parent link="camera_rgb_frame" />
+      <child link="camera_rgb_optical_frame" />
+    </joint>
+    <link name="camera_rgb_optical_frame">
+      <inertial>
+        <mass value="0.001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+    </link>
+  </xacro:macro>
+</robot>
+```
+##### Define Kinect Camera Link
+```xml
+<!-- kinect.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  <xacro:macro>
+      ...
+      <joint name="camera_joint" type="fixed">
+        <origin xyz="-0.031 ${-cam_py} -0.016" rpy="0 0 0"/>
+        <parent link="camera_rgb_frame"/>
+        <child link="camera_link"/>
+      </joint>
+      <link name="camera_link">
+        <visual>
+         <origin xyz="0 0 0" rpy="0 0 ${M_PI/2}"/>
+          <geometry>
+           <!-- load kinect 3d model so that we can visualize where the robot is -->
+           <mesh filename="package://turtlebot_description/meshes/sensors/kinect.dae"/>
+          </geometry>
+        </visual>
+    	  <collision>
+          <origin xyz="0.0 0.0 0.0" rpy="0 0 0"/>
+    	    <geometry>
+    	      <box size="0.07271 0.27794 0.073"/>
+    	    </geometry>
+    	  </collision>
+        <inertial>
+          <mass value="0.001" />
+          <origin xyz="0 0 0" />
+          <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                   iyy="0.0001" iyz="0.0"
+                   izz="0.0001" />
+        </inertial>
+      </link>
+  </xacro:macro>
+</robot>
+```
+
+##### Define Depth Camera
+The fixed joints & links below are usually published by static_transformers launched by the OpenNi launch files.
+However, for Gazebo simulation we need them, so we add them after the camera link.
+```xml
+<?xml version="1.0"?>
+<robot>
+  <xacro:macro>
+    ...
+    <joint name="camera_depth_joint" type="fixed">
+  	  <origin xyz="0 ${2 * -cam_py} 0" rpy="0 0 0" />
+  	  <parent link="camera_rgb_frame" />
+  	  <child link="camera_depth_frame" />
+  	</joint>
+  	<link name="camera_depth_frame">
+      <inertial>
+        <mass value="0.001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+  	</link>
+  	<joint name="camera_depth_optical_joint" type="fixed">
+  	  <origin xyz="0 0 0" rpy="${-M_PI/2} 0 ${-M_PI/2}" />
+  	  <parent link="camera_depth_frame" />
+  	  <child link="camera_depth_optical_frame" />
+  	</joint>
+  	<link name="camera_depth_optical_frame">
+      <inertial>
+        <mass value="0.001" />
+        <origin xyz="0 0 0" />
+        <inertia ixx="0.0001" ixy="0.0" ixz="0.0"
+                 iyy="0.0001" iyz="0.0"
+                 izz="0.0001" />
+      </inertial>
+  	</link>
+  </xacro:macro>
+</robot>
+```
+
+##### Call Kinect Macro
+We need to actually use the Macro by using the macro's name as a tag
+```xml
+<?xml version="1.0"?>
+<robot name="turtlebot" xmlns:xacro="http://ros.org/wiki/xacro">
+  ...
+  <kobuki/>
+  <!-- We declared the "parent" as a parameter to define the parent link for joint -->
+  <sensor_kinect parent="base_link" />
+</robot>
+```
+We should be able to see a kinect mounted on the robot now
+<br></br>
+![Kinect On MyTurtle](images/myturtle_kinect.png)
+
+##### Setup Gazebo Properties for Camera
+```xml
+<!-- myturtle_gazebo.urdf.xacro -->
+<?xml version="1.0"?>
+<robot name="turtlebot_gazebo" xmlns:xacro="http://ros.org/wiki/xacro">
+  <!-- Microsoft Kinect / ASUS Xtion PRO Live for simulation -->
+  <xacro:macro name="turtlebot_sim_3dsensor">
+    <gazebo reference="camera_link">
+      <sensor type="depth" name="camera">
+        <always_on>true</always_on>
+        <update_rate>20.0</update_rate>
+        <camera>
+          <horizontal_fov>${60.0*M_PI/180.0}</horizontal_fov>
+          <image>
+            <format>R8G8B8</format>
+            <width>640</width>
+            <height>480</height>
+          </image>
+          <clip>
+            <near>0.05</near>
+            <far>8.0</far>
+          </clip>
+        </camera>
+        <plugin name="kinect_camera_controller" filename="libgazebo_ros_openni_kinect.so">
+          <cameraName>camera</cameraName>
+          <alwaysOn>true</alwaysOn>
+          <updateRate>10</updateRate>
+          <imageTopicName>rgb/image_raw</imageTopicName>
+          <depthImageTopicName>depth/image_raw</depthImageTopicName>
+          <pointCloudTopicName>depth/points</pointCloudTopicName>
+          <cameraInfoTopicName>rgb/camera_info</cameraInfoTopicName>
+          <depthImageCameraInfoTopicName>depth/camera_info</depthImageCameraInfoTopicName>
+          <frameName>camera_depth_optical_frame</frameName>
+          <baseline>0.1</baseline>
+          <distortion_k1>0.0</distortion_k1>
+          <distortion_k2>0.0</distortion_k2>
+          <distortion_k3>0.0</distortion_k3>
+          <distortion_t1>0.0</distortion_t1>
+          <distortion_t2>0.0</distortion_t2>
+          <pointCloudCutoff>0.4</pointCloudCutoff>
+        </plugin>
+      </sensor>
+    </gazebo>
+  </xacro:macro>
+</robot>
+```
+
+##### Call Kinect Simulator Macro
+We need to call the gazebo properties for kinect by calling the macro after all the joints and links declaration of kinect.urdf.xacro
+```xml
+<!-- kinect.urdf.xacro -->
+<?xml version="1.0"?>
+<robot>
+  <xacro:macro>
+    ...
+    <turtlebot_sim_3dsensor/>
+  </xacro:macro>
+</robot>
+```
+
+#### Velocity Muxer
+```xml
+<!-- myturtle_base.launch.xml -->
+<launch>
+  ...
+  <node />
+  <!-- Velocity muxer -->
+  <node pkg="nodelet" type="nodelet" name="mobile_base_nodelet_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="cmd_vel_mux"
+        args="load yocs_cmd_vel_mux/CmdVelMuxNodelet mobile_base_nodelet_manager">
+    <param name="yaml_cfg_file" value="$(find turtlebot_bringup)/param/mux.yaml" />
+    <remap from="cmd_vel_mux/output" to="mobile_base/commands/velocity"/>
+  </node>
+</launch>
+```
+
+#### Robot State Publisher
+```xml
+<!-- myturtle_empty_world.launch -->
+<launch>
+  ...
+  <include> ... </include>
+
+  <!-- robot state publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="30.0" />
+  </node>
+</launch>
+```
+#### Setting Up Fake Laser
+We use kinect to fake a laser by using depthimage_to_laserscan package
+```xml
+<launch>
+  ...
+  <node> ... </node>
+
+  <!-- Fake laser -->
+  <node pkg="nodelet" type="nodelet" name="laserscan_nodelet_manager" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="depthimage_to_laserscan"
+        args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet laserscan_nodelet_manager">
+    <param name="scan_height" value="10"/>
+    <param name="output_frame_id" value="/camera_depth_frame"/>
+    <param name="range_min" value="0.45"/>
+    <remap from="image" to="/camera/depth/image_raw"/>
+    <remap from="scan" to="/scan"/>
+  </node>
+</launch>
+```
