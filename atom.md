@@ -1,6 +1,6 @@
 Atom Cheatsheet
 ===============
-
+New Boss
 #### How to open atom? Empty
 ```
 atom
