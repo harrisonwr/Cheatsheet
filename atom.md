@@ -1,6 +1,6 @@
 Atom Cheatsheet
 ===============
-Fuck Boy
+
 #### How to open atom? Empty
 ```
 atom
